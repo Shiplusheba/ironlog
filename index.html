@@ -81,6 +81,8 @@ select option{background:var(--bg3)}
 .set-row:last-of-type td{border-bottom:none}
 .set-row.done-row{background:rgba(99,153,34,.04)}
 .set-row.warmup-row{background:rgba(239,159,39,.05)}
+.set-row.pre-row{background:rgba(55,138,221,.03)}
+.s-pre{opacity:.45;font-style:italic}
 .set-row.warmup-row .s-in{color:var(--text2)}
 .wu-btn{background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text3);font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.04em;padding:1px 5px;transition:all .15s;line-height:1.6}
 .wu-btn.is-wu{background:rgba(239,159,39,.15);border-color:var(--amber);color:var(--amber)}
@@ -907,8 +909,36 @@ function updateStartTime(val){
 // legacy alias kept for templates tab quick-start
 function startFromTemplate(tmplId){ confirmStart(tmplId); }
 
+function getLastSession(libId){
+  for(let i=0;i<WS.length;i++){
+    const w=WS[i];
+    if(!w.exercises) continue;
+    const ex=w.exercises.find(e=>e.libId===libId);
+    if(ex&&ex.sets&&ex.sets.length) return ex;
+  }
+  return null;
+}
+
 function makeWorkoutEx(ex){
-  return {uid:nextId(), libId:ex.id, name:ex.name, muscles:ex.muscles||[], sets:[]};
+  const last = getLastSession(ex.id);
+  let sets;
+  if(last && last.sets && last.sets.length){
+    // Pre-load from last session — same set count, same weight/reps
+    sets = last.sets.map(s=>({
+      id:nextId(),
+      weight: s.weight||'',
+      reps: s.reps||'',
+      note: '',
+      done: false,
+      showNote: false,
+      warmup: s.warmup||false,
+      preLoaded: true   // flag — dims slightly until user touches
+    }));
+  } else {
+    // No history — 3 blank sets
+    sets = [1,2,3].map(()=>({id:nextId(),weight:'',reps:'',note:'',done:false,showNote:false,warmup:false}));
+  }
+  return {uid:nextId(), libId:ex.id, name:ex.name, muscles:ex.muscles||[], sets};
 }
 
 // ══════════════════════════════════════════
@@ -925,7 +955,6 @@ function renderWorkoutTab(){
     renderExerciseList();
   } else {
     start.style.display='block'; preview.style.display='none'; active.style.display='none';
-    // Template quick-start list
     const list = document.getElementById('wo-tmpl-list');
     list.innerHTML = BUILT_IN_TEMPLATES.slice(0,6).map(t=>
       `<div class="tmpl" onclick="confirmStart('${t.id}')">
@@ -946,8 +975,14 @@ function renderExerciseList(){
 }
 
 function renderExCard(ex, ei){
-  const last = getLastPerf(ex.libId);
-  const lastHint = last ? `<span class="last-perf">Last: ${last}</span>` : '';
+  const last = getLastSession(ex.libId);
+  const hasPreLoaded = ex.sets.some(s=>s.preLoaded);
+  const lastDate = last ? fmtDate(WS.find(w=>(w.exercises||[]).some(e=>e.libId===ex.libId))?.date||'') : '';
+  const lastHint = hasPreLoaded && lastDate
+    ? `<span class="last-perf" style="color:var(--blue)">↻ ${lastDate}</span>`
+    : last && !hasPreLoaded
+    ? `<span class="last-perf">Last: ${getLastPerf(ex.libId)}</span>`
+    : '';
   const sets = ex.sets.map((s,si)=> renderSetRow(ei,si,s)).join('');
   const total = ACTIVE.exercises.length;
   return `<div class="ex-card" id="exc-${ei}">
@@ -976,13 +1011,14 @@ function renderExCard(ex, ei){
 function renderSetRow(ei, si, s){
   const noteHasContent = s.note && s.note.trim();
   const isWU = !!s.warmup;
+  const isPre = !!s.preLoaded;
   const noteArea = s.showNote ? `<tr class="note-area-row" id="na-${ei}-${si}">
     <td colspan="7"><textarea rows="2" placeholder="Note for this set…" oninput="updateSet(${ei},${si},'note',this.value)">${s.note||''}</textarea></td>
   </tr>` : '';
-  return `<tr class="set-row${isWU?' warmup-row':''}${s.done?' done-row':''}" id="sr-${ei}-${si}">
+  return `<tr class="set-row${isWU?' warmup-row':''}${s.done?' done-row':''}${isPre?' pre-row':''}" id="sr-${ei}-${si}">
     <td><span class="set-num" style="${isWU?'color:var(--amber)':''}">${isWU?'W':si+1}</span></td>
-    <td><input class="s-in" type="number" inputmode="decimal" step="0.5" placeholder="—" value="${s.weight||''}" onchange="updateSet(${ei},${si},'weight',this.value)" style="width:52px"></td>
-    <td><input class="s-in" type="number" inputmode="numeric" placeholder="—" value="${s.reps||''}" onchange="updateSet(${ei},${si},'reps',this.value)" style="width:46px"></td>
+    <td><input class="s-in${isPre?' s-pre':''}" type="number" inputmode="decimal" step="0.5" placeholder="—" value="${s.weight||''}" onfocus="clearPre(${ei},${si})" onchange="updateSet(${ei},${si},'weight',this.value)" style="width:52px"></td>
+    <td><input class="s-in${isPre?' s-pre':''}" type="number" inputmode="numeric" placeholder="—" value="${s.reps||''}" onfocus="clearPre(${ei},${si})" onchange="updateSet(${ei},${si},'reps',this.value)" style="width:46px"></td>
     <td><button class="wu-btn${isWU?' is-wu':''}" onclick="toggleWarmup(${ei},${si})" title="Mark as warm-up">WU</button></td>
     <td><button class="note-tog${noteHasContent?' has-note':''}" onclick="toggleNote(${ei},${si})" title="Note">📝</button></td>
     <td><button class="chk-btn" onclick="toggleDone(${ei},${si})">${s.done?'✓':''}</button></td>
@@ -992,12 +1028,13 @@ function renderSetRow(ei, si, s){
 
 function getLastPerf(libId){
   for(let i=0;i<WS.length;i++){
-    const w = WS[i];
+    const w=WS[i];
     if(!w.exercises) continue;
-    const ex = w.exercises.find(e=>e.libId===libId);
-    if(ex && ex.sets && ex.sets.length){
-      const best = ex.sets.reduce((b,s)=>s.weight>b?s.weight:b,0);
-      const reps = ex.sets[ex.sets.length-1].reps;
+    const ex=w.exercises.find(e=>e.libId===libId);
+    if(ex&&ex.sets&&ex.sets.length){
+      const best=ex.sets.filter(s=>!s.warmup).reduce((b,s)=>s.weight>b?s.weight:b,0);
+      const lastWorking=ex.sets.filter(s=>!s.warmup);
+      const reps=lastWorking.length?lastWorking[lastWorking.length-1].reps:ex.sets[ex.sets.length-1].reps;
       if(best) return `${best}kg × ${reps}`;
     }
   }
@@ -1058,7 +1095,20 @@ function updateSet(ei, si, field, val){
   if(field==='weight') s.weight = parseFloat(val)||'';
   else if(field==='reps') s.reps = parseInt(val)||'';
   else if(field==='note') s.note = val;
+  s.preLoaded = false; // mark as user-touched
   persist();
+}
+
+function clearPre(ei, si){
+  // On focus, clear the preLoaded flag so styling updates
+  if(!ACTIVE||!ACTIVE.exercises[ei]) return;
+  const s = ACTIVE.exercises[ei].sets[si];
+  if(!s.preLoaded) return;
+  s.preLoaded = false;
+  persist();
+  // Re-render just the row to remove faded styling
+  const tbody = document.getElementById('sets-'+ei);
+  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss)).join('');
 }
 
 function toggleDone(ei, si){
