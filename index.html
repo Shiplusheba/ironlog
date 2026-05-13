@@ -264,6 +264,7 @@ select option{background:var(--bg3)}
         </div>
         <div id="ex-list"></div>
         <button class="btn btn-out" onclick="openSheet()" style="margin-bottom:8px">+ Add exercise</button>
+        <button class="btn btn-out" onclick="saveActiveAsTemplate()" style="margin-bottom:8px;border-color:rgba(150,100,220,.3);color:#C49EF0">Save as template</button>
         <button class="btn btn-danger btn-sm" onclick="discardWorkout()" style="width:100%;margin-top:4px">Discard workout</button>
       </div>
     </div>
@@ -1491,15 +1492,44 @@ function renderProgress(){
         <div class="wn">${w.name}</div>
         <div class="wm">${fmtDate(w.date)}${m.length?' · '+m.join(' · '):''}</div>
         ${woNote}
-      </div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      </div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
         <span class="${typeBadge(w.type)}">${typeLabel(w.type)}</span>
-        <button style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);font-size:13px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600" onclick="editWorkout(${w.id},event)" title="Edit workout">✏ Edit</button>
+        <button style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);font-size:13px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600" onclick="saveHistoryAsTemplate(${w.id},event)">⊕ Template</button>
+        <button style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);font-size:13px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600" onclick="editWorkout(${w.id},event)">✏ Edit</button>
         <button class="delb" onclick="delW(${w.id},event)">×</button>
       </div></div>`;
     }).join('')
     :'<div class="empty">No history yet</div>';
 }
 function delW(id,e){e.stopPropagation();WS=WS.filter(w=>w.id!==id);persist();renderProgress();}
+
+function workoutToTemplate(name, type, exercises){
+  const exIds = exercises.map(e=>e.libId).filter(Boolean);
+  const id = 'ct-'+Date.now();
+  const desc = exercises.map(e=>e.name).slice(0,3).join(' · ')+(exercises.length>3?'…':'');
+  CUSTOM_TMPL.push({id, name, type, desc, exIds});
+  persist();
+  toast('"'+name+'" saved as template');
+  renderTemplates();
+}
+
+function saveActiveAsTemplate(){
+  if(!ACTIVE||!ACTIVE.exercises.length){toast('Add exercises first');return;}
+  const name = ACTIVE.name||'My Workout';
+  if(confirm('Save "'+name+'" as a reusable template?')){
+    workoutToTemplate(name, ACTIVE.type, ACTIVE.exercises);
+  }
+}
+
+function saveHistoryAsTemplate(id, e){
+  e.stopPropagation();
+  const w = WS.find(x=>x.id===id);
+  if(!w) return;
+  const name = w.name||'My Workout';
+  if(confirm('Save "'+name+'" as a reusable template?')){
+    workoutToTemplate(name, w.type, w.exercises||[]);
+  }
+}
 
 // ══════════════════════════════════════════
 // ADVISOR LOGIC
