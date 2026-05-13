@@ -255,6 +255,12 @@ select option{background:var(--bg3)}
               <input type="datetime-local" id="wo-end-time" style="font-size:12px;padding:6px 9px;width:100%">
             </div>
           </div>
+          <div>
+            <button onclick="toggleWorkoutNote()" id="wo-note-btn" style="background:none;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);padding:0;display:flex;align-items:center;gap:5px">
+              <span id="wo-note-arrow">▶</span> Workout note
+            </button>
+            <textarea id="wo-notes" placeholder="How did the session feel? Any observations…" oninput="ACTIVE.notes=this.value" style="display:none;width:100%;margin-top:7px;min-height:60px;font-size:13px;resize:vertical"></textarea>
+          </div>
         </div>
         <div id="ex-list"></div>
         <button class="btn btn-out" onclick="openSheet()" style="margin-bottom:8px">+ Add exercise</button>
@@ -490,12 +496,12 @@ const LIBRARY = [
   {id:'db-fly',name:'Dumbbell Fly',cat:'Chest',type:'strength',muscles:['Chest'],note:'Flat or incline bench'},
   {id:'cable-fly',name:'Cable Fly',cat:'Chest',type:'strength',muscles:['Chest'],note:'Cable cross machine'},
   {id:'pec-fly-machine',name:'Pec Fly Machine',cat:'Chest',type:'strength',muscles:['Chest'],note:'Rear delt / pec fly machine'},
-  {id:'pushup',name:'Push-up',cat:'Chest',type:'strength',muscles:['Chest','Triceps','Shoulders'],note:'Bodyweight area'},
+  {id:'pushup',name:'Push-up',cat:'Chest',type:'strength',muscles:['Chest','Triceps','Shoulders'],note:'Bodyweight area',setConfig:'bodyweight'},
   {id:'close-bench',name:'Close-Grip Bench Press',cat:'Chest',type:'strength',muscles:['Triceps','Chest'],note:'Bench press station'},
 
   // ── BACK (pull-up bar + T-row + cables + dumbbell row)
-  {id:'pullup',name:'Pull-up',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Pull-up bar in gym'},
-  {id:'chinup',name:'Chin-up',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Pull-up bar — underhand grip'},
+  {id:'pullup',name:'Pull-up',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Pull-up bar in gym',setConfig:'bodyweight'},
+  {id:'chinup',name:'Chin-up',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Pull-up bar — underhand grip',setConfig:'bodyweight'},
   {id:'weighted-pullup',name:'Weighted Pull-up',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Pull-up bar + dip belt'},
   {id:'tbar-row',name:'T-Bar Row',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'T-row equipment'},
   {id:'seated-row',name:'Seated Cable Row',cat:'Back',type:'strength',muscles:['Back','Biceps'],note:'Low pulley cable'},
@@ -575,7 +581,7 @@ const LIBRARY = [
   {id:'cable-hammer-curl',name:'Cable Hammer Curl',cat:'Biceps',type:'strength',muscles:['Biceps','Forearms'],note:'Low pulley + rope attachment'},
 
   // ── TRICEPS (dip bar + cables + dumbbells + bench)
-  {id:'tricep-dip',name:'Tricep Dip',cat:'Triceps',type:'strength',muscles:['Triceps','Chest'],note:'Dip bar'},
+  {id:'tricep-dip',name:'Tricep Dip',cat:'Triceps',type:'strength',muscles:['Triceps','Chest'],note:'Dip bar',setConfig:'bodyweight'},
   {id:'weighted-dip',name:'Weighted Dip',cat:'Triceps',type:'strength',muscles:['Triceps','Chest'],note:'Dip bar + dip belt'},
   {id:'tricep-pushdown',name:'Tricep Pushdown',cat:'Triceps',type:'strength',muscles:['Triceps'],note:'High pulley cable'},
   {id:'rope-pushdown',name:'Rope Pushdown',cat:'Triceps',type:'strength',muscles:['Triceps'],note:'High pulley + rope attachment'},
@@ -586,19 +592,19 @@ const LIBRARY = [
 
   // ── CORE (ab machine + pull-up bar + bodyweight area)
   {id:'ab-machine',name:'Abdominal Machine',cat:'Core',type:'strength',muscles:['Core'],note:'Ab machine'},
-  {id:'hanging-leg-raise',name:'Hanging Leg Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Pull-up bar'},
-  {id:'hanging-knee-raise',name:'Hanging Knee Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Pull-up bar'},
-  {id:'floor-leg-raise',name:'Floor Leg Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area, lying flat'},
+  {id:'hanging-leg-raise',name:'Hanging Leg Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Pull-up bar',setConfig:'bodyweight'},
+  {id:'hanging-knee-raise',name:'Hanging Knee Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Pull-up bar',setConfig:'bodyweight'},
+  {id:'floor-leg-raise',name:'Floor Leg Raise',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area, lying flat',setConfig:'bodyweight'},
   {id:'cable-crunch',name:'Cable Crunch',cat:'Core',type:'strength',muscles:['Core'],note:'High pulley cable, kneeling'},
-  {id:'plank',name:'Plank',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area'},
-  {id:'crunch',name:'Crunch',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area or ab mat'},
-  {id:'decline-crunch',name:'Decline Bench Crunch',cat:'Core',type:'strength',muscles:['Core'],note:'Decline bench — feet hooked'},
+  {id:'plank',name:'Plank',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area',setConfig:'duration'},
+  {id:'crunch',name:'Crunch',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area or ab mat',setConfig:'bodyweight'},
+  {id:'decline-crunch',name:'Decline Bench Crunch',cat:'Core',type:'strength',muscles:['Core'],note:'Decline bench — feet hooked',setConfig:'bodyweight'},
   {id:'russian-twist',name:'Russian Twist',cat:'Core',type:'strength',muscles:['Core'],note:'With weight plate or dumbbell'},
-  {id:'windscreen-wiper',name:'Windscreen Wiper',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area — lying, legs side to side'},
+  {id:'windscreen-wiper',name:'Windscreen Wiper',cat:'Core',type:'strength',muscles:['Core'],note:'Bodyweight area — lying, legs side to side',setConfig:'bodyweight'},
   {id:'wood-chop',name:'Wood Chop',cat:'Core',type:'strength',muscles:['Core','Shoulders'],note:'Cable cross — high or low pulley'},
   {id:'back-ext-core',name:'Back Extension',cat:'Core',type:'strength',muscles:['Back','Core'],note:'Back extension machine'},
-  {id:'hyperextension',name:'Hyperextension',cat:'Core',type:'strength',muscles:['Back','Glutes'],note:'Back extension machine or floor'},
-  {id:'superman',name:'Superman',cat:'Core',type:'strength',muscles:['Back','Glutes'],note:'Bodyweight area — floor, prone'},
+  {id:'hyperextension',name:'Hyperextension',cat:'Core',type:'strength',muscles:['Back','Glutes'],note:'Back extension machine or floor',setConfig:'bodyweight'},
+  {id:'superman',name:'Superman',cat:'Core',type:'strength',muscles:['Back','Glutes'],note:'Bodyweight area — floor, prone',setConfig:'bodyweight'},
   {id:'neck-curl',name:'Neck Curl',cat:'Core',type:'strength',muscles:['Core'],note:'Lying — upward and downward, use weight plate carefully'},
 
   // ── BACK — additional from personal plans
@@ -609,7 +615,7 @@ const LIBRARY = [
   {id:'hip-abduction',name:'Hip Abduction',cat:'Legs',type:'strength',muscles:['Glutes'],note:'Hip abduction machine'},
   {id:'hip-adduction',name:'Hip Adduction',cat:'Legs',type:'strength',muscles:['Quads','Glutes'],note:'Hip adduction machine'},
   {id:'seated-calf-raise',name:'Seated Calf Raise',cat:'Legs',type:'strength',muscles:['Calves'],note:'Seated calf raise machine or plates on knees'},
-  {id:'side-lunge',name:'Side Lunge',cat:'Legs',type:'strength',muscles:['Quads','Glutes','Groin'],note:'Bodyweight or dumbbells'},
+  {id:'side-lunge',name:'Side Lunge',cat:'Legs',type:'strength',muscles:['Quads','Glutes','Groin'],note:'Bodyweight or dumbbells',setConfig:'bodyweight'},
   {id:'straight-leg-dl',name:'Straight Leg Deadlift',cat:'Legs',type:'strength',muscles:['Hamstrings','Glutes','Back'],note:'Barbell or dumbbells — legs nearly straight'},
   {id:'barbell-hip-thrust',name:'Barbell Hip Thrust',cat:'Legs',type:'strength',muscles:['Glutes','Hamstrings'],note:'Barbell — back against bench'},
 
@@ -619,16 +625,16 @@ const LIBRARY = [
   {id:'pushdown',name:'Tricep Pushdown',cat:'Triceps',type:'strength',muscles:['Triceps'],note:'High pulley — rope or bar attachment'},
 
   // ── CARDIO (treadmill + cross-trainer + exercise bikes + rowing machine)
-  {id:'treadmill',name:'Treadmill',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Rentukka main gym'},
-  {id:'cross-trainer',name:'Cross-Trainer',cat:'Cardio',type:'cardio',muscles:['Quads','Glutes','Core'],note:'Rentukka main gym'},
-  {id:'exercise-bike',name:'Exercise Bike',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Rentukka main gym'},
-  {id:'rowing',name:'Rowing Machine',cat:'Cardio',type:'cardio',muscles:['Back','Quads','Core'],note:'Rentukka main gym'},
-  {id:'outdoor-run',name:'Outdoor Run',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Laajavuori trails nearby'},
+  {id:'treadmill',name:'Treadmill',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Rentukka main gym',setConfig:'treadmill'},
+  {id:'cross-trainer',name:'Cross-Trainer',cat:'Cardio',type:'cardio',muscles:['Quads','Glutes','Core'],note:'Rentukka main gym',setConfig:'crosstrainer'},
+  {id:'exercise-bike',name:'Exercise Bike',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Rentukka main gym',setConfig:'bike'},
+  {id:'rowing',name:'Rowing Machine',cat:'Cardio',type:'cardio',muscles:['Back','Quads','Core'],note:'Rentukka main gym',setConfig:'rowing'},
+  {id:'outdoor-run',name:'Outdoor Run',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Laajavuori trails nearby',setConfig:'treadmill'},
 
   // ── HIIT (bodyweight area in gym + cardio machines)
-  {id:'burpee',name:'Burpees',cat:'HIIT',type:'hiit',muscles:['Core','Chest','Quads'],note:'Bodyweight area'},
-  {id:'jump-squat',name:'Jump Squats',cat:'HIIT',type:'hiit',muscles:['Quads','Glutes'],note:'Bodyweight area'},
-  {id:'mountain-climber',name:'Mountain Climbers',cat:'HIIT',type:'hiit',muscles:['Core','Shoulders'],note:'Bodyweight area'},
+  {id:'burpee',name:'Burpees',cat:'HIIT',type:'hiit',muscles:['Core','Chest','Quads'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'jump-squat',name:'Jump Squats',cat:'HIIT',type:'hiit',muscles:['Quads','Glutes'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'mountain-climber',name:'Mountain Climbers',cat:'HIIT',type:'hiit',muscles:['Core','Shoulders'],note:'Bodyweight area',setConfig:'bodyweight'},
   {id:'rowing-hiit',name:'Rowing Intervals',cat:'HIIT',type:'hiit',muscles:['Back','Quads','Core'],note:'Rowing machine — sprint intervals'},
   {id:'bike-hiit',name:'Bike Intervals',cat:'HIIT',type:'hiit',muscles:['Quads','Calves'],note:'Exercise bike — sprint intervals'},
   {id:'treadmill-hiit',name:'Treadmill Sprints',cat:'HIIT',type:'hiit',muscles:['Quads','Calves'],note:'Treadmill — alternate sprint/walk'},
@@ -636,20 +642,20 @@ const LIBRARY = [
   {id:'dip-hiit',name:'Dip Clusters',cat:'HIIT',type:'hiit',muscles:['Triceps','Chest'],note:'Dip bar — max reps, short rest'},
 
   // ── CROSSFIT (weight room for barbell WODs; pull-up bar + dip bar + cables available)
-  {id:'cf-pullup',name:'Pull-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Back','Biceps'],note:'Pull-up bar in gym'},
-  {id:'cf-dip',name:'Dip (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Triceps','Chest'],note:'Dip bar in gym'},
+  {id:'cf-pullup',name:'Pull-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Back','Biceps'],note:'Pull-up bar in gym',setConfig:'bodyweight'},
+  {id:'cf-dip',name:'Dip (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Triceps','Chest'],note:'Dip bar in gym',setConfig:'bodyweight'},
   {id:'cf-thruster',name:'Thruster',cat:'CrossFit',type:'crossfit',muscles:['Quads','Shoulders','Triceps'],note:'Barbell — squat rack or weight room'},
   {id:'cf-db-thruster',name:'DB Thruster',cat:'CrossFit',type:'crossfit',muscles:['Quads','Shoulders','Triceps'],note:'Dumbbells — no rack needed'},
   {id:'cf-power-clean',name:'Power Clean',cat:'CrossFit',type:'crossfit',muscles:['Back','Quads','Shoulders'],note:'⚠ Weight room only (Bldg A, 9–21)'},
   {id:'cf-clean-jerk',name:'Clean & Jerk',cat:'CrossFit',type:'crossfit',muscles:['Back','Quads','Shoulders'],note:'⚠ Weight room only (Bldg A, 9–21)'},
   {id:'cf-snatch',name:'Snatch',cat:'CrossFit',type:'crossfit',muscles:['Back','Quads','Shoulders'],note:'⚠ Weight room only (Bldg A, 9–21)'},
   {id:'cf-deadlift',name:'Deadlift (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Back','Glutes','Hamstrings'],note:'⚠ Weight room only (Bldg A, 9–21)'},
-  {id:'cf-squat',name:'Air Squat',cat:'CrossFit',type:'crossfit',muscles:['Quads','Glutes'],note:'Bodyweight area'},
-  {id:'cf-pushup',name:'Push-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Chest','Triceps'],note:'Bodyweight area'},
-  {id:'cf-situp',name:'Sit-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Core'],note:'Bodyweight area'},
-  {id:'cf-lunge',name:'Walking Lunge',cat:'CrossFit',type:'crossfit',muscles:['Quads','Glutes'],note:'Bodyweight or dumbbells'},
-  {id:'cf-burpee',name:'Burpee (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Core','Chest','Quads'],note:'Bodyweight area'},
-  {id:'cf-toes-bar',name:'Toes to Bar',cat:'CrossFit',type:'crossfit',muscles:['Core'],note:'Pull-up bar'},
+  {id:'cf-squat',name:'Air Squat',cat:'CrossFit',type:'crossfit',muscles:['Quads','Glutes'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'cf-pushup',name:'Push-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Chest','Triceps'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'cf-situp',name:'Sit-up (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Core'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'cf-lunge',name:'Walking Lunge',cat:'CrossFit',type:'crossfit',muscles:['Quads','Glutes'],note:'Bodyweight or dumbbells',setConfig:'bodyweight'},
+  {id:'cf-burpee',name:'Burpee (WOD)',cat:'CrossFit',type:'crossfit',muscles:['Core','Chest','Quads'],note:'Bodyweight area',setConfig:'bodyweight'},
+  {id:'cf-toes-bar',name:'Toes to Bar',cat:'CrossFit',type:'crossfit',muscles:['Core'],note:'Pull-up bar',setConfig:'bodyweight'},
   {id:'cf-hspu',name:'Handstand Push-up',cat:'CrossFit',type:'crossfit',muscles:['Shoulders','Triceps'],note:'Against wall, bodyweight area'},
   {id:'cf-row',name:'Row (for calories)',cat:'CrossFit',type:'crossfit',muscles:['Back','Quads','Core'],note:'Rowing machine in gym'},
   {id:'cf-front-squat',name:'Front Squat',cat:'CrossFit',type:'crossfit',muscles:['Quads','Core'],note:'Squat rack'},
@@ -661,11 +667,11 @@ const LIBRARY = [
   {id:'rehab-ankle-eversion',name:'Ankle Eversion — Concentric Band',cat:'Rehab',type:'rehab',muscles:['Calves','Forearms'],note:'3×8-10 · light band · slow & controlled · 2×/day · 1 min rest'},
   {id:'rehab-ankle-inversion',name:'Ankle Inversion — Eccentric Band',cat:'Rehab',type:'rehab',muscles:['Calves','Forearms'],note:'3×8-10 · light band · slow & controlled · 2×/day · 1 min rest'},
   {id:'rehab-calf-raise-step',name:'Calf Raise — 2 Up 1 Down (Step)',cat:'Rehab',type:'rehab',muscles:['Calves'],note:'2×6 · 3-count lowering · 2 min rest · 1×/day 4×/week'},
-  {id:'rehab-single-leg-balance',name:'Single Leg Balance',cat:'Rehab',type:'rehab',muscles:['Calves','Core'],note:'2×3 · hold 30 sec · 1 min rest · 2×/day · progress to foam'},
-  {id:'rehab-single-leg-foam',name:'Single Leg Balance (Foam)',cat:'Rehab',type:'rehab',muscles:['Calves','Core'],note:'Progress from floor balance · hands on hips when stable'},
-  {id:'rehab-bridge-band',name:'Bridge + LE Stabilization (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes','Core'],note:'3×8 · hold 3-5 sec · 2 min rest · 1×/day 4×/week · band above knees'},
-  {id:'rehab-bridge-single-leg',name:'Bridge + Alternating Single Leg (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes','Core'],note:'3×8 · hold 3 sec · 2 min rest · 4×/week · progress from bridge band'},
-  {id:'rehab-clamshell',name:'Clamshell (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes'],note:'3×8-10 · light band · 1 min rest · 1×/day 4×/week · hips 45° knees 90°'},
+  {id:'rehab-single-leg-balance',name:'Single Leg Balance',cat:'Rehab',type:'rehab',muscles:['Calves','Core'],setConfig:'duration',note:'2×3 · hold 30 sec · 1 min rest · 2×/day · progress to foam'},
+  {id:'rehab-single-leg-foam',name:'Single Leg Balance (Foam)',cat:'Rehab',type:'rehab',muscles:['Calves','Core'],setConfig:'duration',note:'Progress from floor balance · hands on hips when stable'},
+  {id:'rehab-bridge-band',name:'Bridge + LE Stabilization (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes','Core'],note:'3×8 · hold 3-5 sec · 2 min rest · 1×/day 4×/week · band above knees',setConfig:'bodyweight'},
+  {id:'rehab-bridge-single-leg',name:'Bridge + Alternating Single Leg (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes','Core'],note:'3×8 · hold 3 sec · 2 min rest · 4×/week · progress from bridge band',setConfig:'bodyweight'},
+  {id:'rehab-clamshell',name:'Clamshell (Band)',cat:'Rehab',type:'rehab',muscles:['Glutes'],note:'3×8-10 · light band · 1 min rest · 1×/day 4×/week · hips 45° knees 90°',setConfig:'bodyweight'},
 ];
 
 const BUILT_IN_TEMPLATES = [
@@ -718,6 +724,16 @@ const BUILT_IN_TEMPLATES = [
   {id:'cf-isabel',name:'Isabel',type:'crossfit',desc:'⚠ Weight room · 30 Snatches for time',exIds:['cf-snatch']},
   {id:'cf-barbell',name:'Barbell Complex',type:'crossfit',desc:'⚠ Weight room · Clean · Front Squat · Push Press · OHS',exIds:['cf-power-clean','cf-front-squat','cf-push-press','cf-ohsquat']},
 ];
+
+const SET_CONFIGS = {
+  // Strength (default) — weight + reps — no entry needed, used as fallback
+  duration:    {seg:'Set',  fields:[{key:'seconds',lbl:'sec',ph:'30',step:'5'}]},
+  bodyweight:  {seg:'Set',  fields:[{key:'reps',lbl:'reps',ph:'—',step:'1'}]},
+  rowing:      {seg:'Segment', fields:[{key:'distance',lbl:'m',ph:'2000',step:'1'},{key:'time',lbl:'min',ph:'8:00',step:'0.5'},{key:'calories',lbl:'cal',ph:'—',step:'1'}]},
+  treadmill:   {seg:'Segment', fields:[{key:'distance',lbl:'km',ph:'5.0',step:'0.1'},{key:'time',lbl:'min',ph:'30',step:'0.5'},{key:'speed',lbl:'km/h',ph:'—',step:'0.1'}]},
+  bike:        {seg:'Segment', fields:[{key:'time',lbl:'min',ph:'20',step:'0.5'},{key:'level',lbl:'lvl',ph:'—',step:'1'},{key:'calories',lbl:'cal',ph:'—',step:'1'}]},
+  crosstrainer:{seg:'Segment', fields:[{key:'time',lbl:'min',ph:'20',step:'0.5'},{key:'distance',lbl:'km',ph:'—',step:'0.1'},{key:'level',lbl:'lvl',ph:'—',step:'1'}]},
+};
 
 const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Traps','Forearms'];
 const MUSCLE_REC = {Chest:72,Back:72,Shoulders:48,Biceps:48,Triceps:48,Quads:72,Hamstrings:72,Glutes:72,Calves:36,Core:24,Traps:48,Forearms:24};
@@ -919,26 +935,28 @@ function getLastSession(libId){
   return null;
 }
 
+function makeBlankSet(setConfig){
+  if(setConfig && SET_CONFIGS[setConfig]){
+    const blank = {id:nextId(), note:'', done:false, showNote:false};
+    SET_CONFIGS[setConfig].fields.forEach(f=>blank[f.key]='');
+    return blank;
+  }
+  return {id:nextId(), weight:'', reps:'', note:'', done:false, showNote:false, warmup:false};
+}
+
 function makeWorkoutEx(ex){
+  const cfg = ex.setConfig||null;
   const last = getLastSession(ex.id);
   let sets;
   if(last && last.sets && last.sets.length){
-    // Pre-load from last session — same set count, same weight/reps
     sets = last.sets.map(s=>({
-      id:nextId(),
-      weight: s.weight||'',
-      reps: s.reps||'',
-      note: '',
-      done: false,
-      showNote: false,
-      warmup: s.warmup||false,
-      preLoaded: true   // flag — dims slightly until user touches
+      ...s,
+      id:nextId(), note:'', done:false, showNote:false, preLoaded:true
     }));
   } else {
-    // No history — 3 blank sets
-    sets = [1,2,3].map(()=>({id:nextId(),weight:'',reps:'',note:'',done:false,showNote:false,warmup:false}));
+    sets = [1,2,3].map(()=>makeBlankSet(cfg));
   }
-  return {uid:nextId(), libId:ex.id, name:ex.name, muscles:ex.muscles||[], sets};
+  return {uid:nextId(), libId:ex.id, name:ex.name, muscles:ex.muscles||[], sets, setConfig:cfg};
 }
 
 // ══════════════════════════════════════════
@@ -952,6 +970,14 @@ function renderWorkoutTab(){
     start.style.display='none'; preview.style.display='none'; active.style.display='block';
     document.getElementById('wo-name-in').value = ACTIVE.name||'';
     syncTimeInputs();
+    // Restore workout note if it exists
+    const woNotes = document.getElementById('wo-notes');
+    const woArrow = document.getElementById('wo-note-arrow');
+    if(woNotes && ACTIVE.notes){
+      woNotes.value = ACTIVE.notes;
+      woNotes.style.display = 'block';
+      if(woArrow) woArrow.textContent = '▼';
+    }
     renderExerciseList();
   } else {
     start.style.display='block'; preview.style.display='none'; active.style.display='none';
@@ -983,8 +1009,14 @@ function renderExCard(ex, ei){
     : last && !hasPreLoaded
     ? `<span class="last-perf">Last: ${getLastPerf(ex.libId)}</span>`
     : '';
-  const sets = ex.sets.map((s,si)=> renderSetRow(ei,si,s)).join('');
+  const sets = ex.sets.map((s,si)=> renderSetRow(ei,si,s,ex.setConfig)).join('');
   const total = ACTIVE.exercises.length;
+  const cfg = ex.setConfig ? SET_CONFIGS[ex.setConfig] : null;
+  const headers = cfg
+    ? `<th>${cfg.seg}</th>${cfg.fields.map(f=>`<th>${f.lbl}</th>`).join('')}<th>📝</th><th>✓</th><th></th>`
+    : `<th>Set</th><th>kg</th><th>Reps</th><th>WU</th><th>📝</th><th>✓</th><th></th>`;
+  const exNoteOpen = !!ex.showNote;
+  const exNoteHas = !!(ex.notes && ex.notes.trim());
   return `<div class="ex-card" id="exc-${ei}">
     <div class="ex-head">
       <div class="ord-btns">
@@ -996,31 +1028,51 @@ function renderExCard(ex, ei){
         <div class="ex-muscles-lbl">${ex.muscles.slice(0,3).join(' · ')}</div>
       </div>
       ${lastHint}
+      <button class="note-tog${exNoteHas?' has-note':''}" onclick="toggleExNote(${ei})" title="Exercise note" style="margin-right:4px">📝</button>
       <button class="del-ex-btn" onclick="removeEx(${ei})" title="Remove exercise">×</button>
     </div>
+    <div id="ex-note-area-${ei}" style="display:${exNoteOpen?'block':'none'};padding:8px 14px;border-top:1px solid var(--border)">
+      <textarea id="ex-note-${ei}" class="note-input" placeholder="Exercise note — e.g. felt tight on right side, used wider grip…" oninput="updateExNote(${ei},this.value)" style="width:100%;min-height:52px">${ex.notes||''}</textarea>
+    </div>
     <table class="set-tbl">
-      <thead class="set-tbl-head"><tr>
-        <th>Set</th><th>kg</th><th>Reps</th><th>WU</th><th>📝</th><th>✓</th><th></th>
-      </tr></thead>
+      <thead class="set-tbl-head"><tr>${headers}</tr></thead>
       <tbody id="sets-${ei}">${sets}</tbody>
     </table>
     <button class="add-set-btn" onclick="addSet(${ei})">+ Add set</button>
   </div>`;
 }
 
-function renderSetRow(ei, si, s){
+function renderSetRow(ei, si, s, setConfig){
   const noteHasContent = s.note && s.note.trim();
-  const isWU = !!s.warmup;
   const isPre = !!s.preLoaded;
   const noteArea = s.showNote ? `<tr class="note-area-row" id="na-${ei}-${si}">
-    <td colspan="7"><textarea rows="2" placeholder="Note for this set…" oninput="updateSet(${ei},${si},'note',this.value)">${s.note||''}</textarea></td>
+    <td colspan="7"><textarea rows="2" placeholder="Note…" oninput="updateSet(${ei},${si},'note',this.value)">${s.note||''}</textarea></td>
   </tr>` : '';
+
+  // Non-strength custom fields (cardio, bodyweight, duration)
+  if(setConfig && SET_CONFIGS[setConfig]){
+    const cfg = SET_CONFIGS[setConfig];
+    const singleField = cfg.fields.length === 1;
+    const inputs = cfg.fields.map(f=>
+      `<td><input class="s-in${isPre?' s-pre':''}" type="number" inputmode="decimal" step="${f.step||'1'}" placeholder="${f.ph}" value="${s[f.key]||''}" onfocus="clearPre(${ei},${si})" onchange="updateSet(${ei},${si},'${f.key}',this.value)" style="width:${singleField?'80px':'52px'}"></td>`
+    ).join('');
+    return `<tr class="set-row${s.done?' done-row':''}${isPre?' pre-row':''}" id="sr-${ei}-${si}">
+      <td><span class="set-num">${si+1}</span></td>
+      ${inputs}
+      <td><button class="note-tog${noteHasContent?' has-note':''}" onclick="toggleNote(${ei},${si})">📝</button></td>
+      <td><button class="chk-btn" onclick="toggleDone(${ei},${si})">${s.done?'✓':''}</button></td>
+      <td><button class="del-set-btn" onclick="delSet(${ei},${si})">×</button></td>
+    </tr>${noteArea}`;
+  }
+
+  // Strength (default)
+  const isWU = !!s.warmup;
   return `<tr class="set-row${isWU?' warmup-row':''}${s.done?' done-row':''}${isPre?' pre-row':''}" id="sr-${ei}-${si}">
     <td><span class="set-num" style="${isWU?'color:var(--amber)':''}">${isWU?'W':si+1}</span></td>
     <td><input class="s-in${isPre?' s-pre':''}" type="number" inputmode="decimal" step="0.5" placeholder="—" value="${s.weight||''}" onfocus="clearPre(${ei},${si})" onchange="updateSet(${ei},${si},'weight',this.value)" style="width:52px"></td>
     <td><input class="s-in${isPre?' s-pre':''}" type="number" inputmode="numeric" placeholder="—" value="${s.reps||''}" onfocus="clearPre(${ei},${si})" onchange="updateSet(${ei},${si},'reps',this.value)" style="width:46px"></td>
-    <td><button class="wu-btn${isWU?' is-wu':''}" onclick="toggleWarmup(${ei},${si})" title="Mark as warm-up">WU</button></td>
-    <td><button class="note-tog${noteHasContent?' has-note':''}" onclick="toggleNote(${ei},${si})" title="Note">📝</button></td>
+    <td><button class="wu-btn${isWU?' is-wu':''}" onclick="toggleWarmup(${ei},${si})">WU</button></td>
+    <td><button class="note-tog${noteHasContent?' has-note':''}" onclick="toggleNote(${ei},${si})">📝</button></td>
     <td><button class="chk-btn" onclick="toggleDone(${ei},${si})">${s.done?'✓':''}</button></td>
     <td><button class="del-set-btn" onclick="delSet(${ei},${si})">×</button></td>
   </tr>${noteArea}`;
@@ -1071,21 +1123,31 @@ function moveEx(ei, dir){
 // ══════════════════════════════════════════
 function addSet(ei){
   const ex = ACTIVE.exercises[ei];
-  // Pre-fill with previous set's values
+  const cfg = ex.setConfig||null;
   const prev = ex.sets.length ? ex.sets[ex.sets.length-1] : null;
-  ex.sets.push({id:nextId(), weight:prev?prev.weight:'', reps:prev?prev.reps:'', note:'', done:false, showNote:false});
+  let newSet;
+  if(cfg && SET_CONFIGS[cfg]){
+    newSet = makeBlankSet(cfg);
+    if(prev) SET_CONFIGS[cfg].fields.forEach(f=>{ if(prev[f.key]!==undefined && prev[f.key]!=='') newSet[f.key]=prev[f.key]; });
+  } else {
+    newSet = {id:nextId(), weight:prev?prev.weight:'', reps:prev?prev.reps:'', note:'', done:false, showNote:false, warmup:false};
+  }
+  ex.sets.push(newSet);
   persist();
-  // Re-render just the tbody
   const tbody = document.getElementById('sets-'+ei);
-  if(tbody) tbody.innerHTML = ex.sets.map((s,si)=>renderSetRow(ei,si,s)).join('');
+  if(tbody) tbody.innerHTML = ex.sets.map((s,si)=>renderSetRow(ei,si,s,cfg)).join('');
   else renderExerciseList();
 }
 
 function delSet(ei, si){
-  ACTIVE.exercises[ei].sets.splice(si,1);
+  const ex = ACTIVE.exercises[ei];
+  ex.sets.splice(si,1);
   persist();
   const tbody = document.getElementById('sets-'+ei);
-  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((s,si2)=>renderSetRow(ei,si2,s)).join('');
+  if(tbody) tbody.innerHTML = ex.sets.map((s,si)=>renderSetRow(ei,si,s,ex.setConfig||null)).join('');
+  else renderExerciseList();
+}
+  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((s,si2)=>renderSetRow(ei,si2,s,ACTIVE.exercises[ei].setConfig||null)).join('');
   else renderExerciseList();
 }
 
@@ -1108,7 +1170,7 @@ function clearPre(ei, si){
   persist();
   // Re-render just the row to remove faded styling
   const tbody = document.getElementById('sets-'+ei);
-  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss)).join('');
+  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss,ACTIVE.exercises[ei].setConfig||null)).join('');
 }
 
 function toggleDone(ei, si){
@@ -1123,12 +1185,40 @@ function toggleDone(ei, si){
   }
 }
 
-function toggleWarmup(ei, si){
+function toggleWorkoutNote(){
+  const ta = document.getElementById('wo-notes');
+  const arrow = document.getElementById('wo-note-arrow');
+  const btn = document.getElementById('wo-note-btn');
+  const isOpen = ta.style.display !== 'none';
+  ta.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▶' : '▼';
+  if(!isOpen) ta.focus();
+}
+
+function toggleExNote(ei){
+  if(!ACTIVE||!ACTIVE.exercises[ei]) return;
+  const ex = ACTIVE.exercises[ei];
+  ex.showNote = !ex.showNote;
+  persist();
+  const area = document.getElementById('ex-note-area-'+ei);
+  const btn = document.querySelector(`#exc-${ei} .note-tog`);
+  if(area) area.style.display = ex.showNote ? 'block' : 'none';
+  if(ex.showNote) document.getElementById('ex-note-'+ei)?.focus();
+}
+
+function updateExNote(ei, val){
+  if(!ACTIVE||!ACTIVE.exercises[ei]) return;
+  ACTIVE.exercises[ei].notes = val;
+  persist();
+  // Update the 📝 button color if note has content
+  const btn = document.querySelector(`#exc-${ei} .note-tog`);
+  if(btn) btn.classList.toggle('has-note', !!val.trim());
+}
   const s = ACTIVE.exercises[ei].sets[si];
   s.warmup = !s.warmup;
   persist();
   const tbody = document.getElementById('sets-'+ei);
-  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss)).join('');
+  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss,ACTIVE.exercises[ei].setConfig||null)).join('');
 }
 
 function toggleNote(ei, si){
@@ -1137,7 +1227,7 @@ function toggleNote(ei, si){
   persist();
   // Re-render just this set row + note area
   const tbody = document.getElementById('sets-'+ei);
-  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss)).join('');
+  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((ss,ssi)=>renderSetRow(ei,ssi,ss,ACTIVE.exercises[ei].setConfig||null)).join('');
 }
 
 // ══════════════════════════════════════════
@@ -1397,9 +1487,11 @@ function renderProgress(){
       const m=[]; if(w.duration)m.push(w.duration+'min');
       const exNames=(w.exercises||[]).map(e=>e.name).slice(0,3).join(', ');
       if(exNames)m.push(exNames);
+      const woNote = w.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">${w.notes}</div>` : '';
       return`<div class="wrow"><div style="flex:1;min-width:0">
         <div class="wn">${w.name}</div>
         <div class="wm">${fmtDate(w.date)}${m.length?' · '+m.join(' · '):''}</div>
+        ${woNote}
       </div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <span class="${typeBadge(w.type)}">${typeLabel(w.type)}</span>
         <button style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--text2);font-size:13px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600" onclick="editWorkout(${w.id},event)" title="Edit workout">✏ Edit</button>
@@ -1535,6 +1627,12 @@ function renderEditExList(){
       </tr>
       ${s.showNote?`<tr class="note-area-row"><td colspan="7"><textarea class="note-input" placeholder="Note…" oninput="updateEditSet(${ei},${si},'note',this.value)">${s.note||''}</textarea></td></tr>`:''}
     `).join('');
+    const exNoteHas = !!(ex.notes && ex.notes.trim());
+    const exNoteOpen = !!ex.showNote;
+    const cfg = ex.setConfig ? SET_CONFIGS[ex.setConfig] : null;
+    const hdrs = cfg
+      ? `<th>${cfg.seg}</th>${cfg.fields.map(f=>`<th>${f.lbl}</th>`).join('')}<th>📝</th><th>✓</th><th></th>`
+      : `<th>Set</th><th>kg</th><th>Reps</th><th>WU</th><th>📝</th><th>✓</th><th></th>`;
     return`<div class="ex-card" id="ed-exc-${ei}">
       <div class="ex-head">
         <div class="ord-btns">
@@ -1545,12 +1643,14 @@ function renderEditExList(){
           <div class="ex-name">${ex.name}</div>
           <div class="ex-muscles-lbl">${(ex.muscles||[]).slice(0,3).join(' · ')}</div>
         </div>
+        <button class="note-tog${exNoteHas?' has-note':''}" onclick="toggleEditExNote(${ei})" title="Exercise note" style="margin-right:4px">📝</button>
         <button class="del-ex-btn" onclick="removeEditEx(${ei})">×</button>
       </div>
+      <div id="ed-ex-note-area-${ei}" style="display:${exNoteOpen?'block':'none'};padding:8px 14px;border-top:1px solid var(--border)">
+        <textarea class="note-input" placeholder="Exercise note — e.g. used wider grip, knee felt good…" oninput="updateEditExNote(${ei},this.value)" style="width:100%;min-height:52px">${ex.notes||''}</textarea>
+      </div>
       <table class="set-tbl">
-        <thead class="set-tbl-head"><tr>
-          <th>Set</th><th>kg</th><th>Reps</th><th>WU</th><th>📝</th><th>✓</th><th></th>
-        </tr></thead>
+        <thead class="set-tbl-head"><tr>${hdrs}</tr></thead>
         <tbody id="ed-sets-${ei}">${setRows}</tbody>
       </table>
       <button class="add-set-btn" onclick="addEditSet(${ei})">+ Add set</button>
@@ -1573,6 +1673,20 @@ function toggleEditWarmup(ei,si){
   const s=EDIT_WO.exercises[ei].sets[si]; s.warmup=!s.warmup;
   const tbody=document.getElementById('ed-sets-'+ei);
   if(tbody) renderEditExList();
+}
+
+function toggleEditExNote(ei){
+  const ex=EDIT_WO.exercises[ei];
+  ex.showNote=!ex.showNote;
+  const area=document.getElementById('ed-ex-note-area-'+ei);
+  if(area) area.style.display=ex.showNote?'block':'none';
+}
+
+function updateEditExNote(ei,val){
+  if(!EDIT_WO||!EDIT_WO.exercises[ei]) return;
+  EDIT_WO.exercises[ei].notes=val;
+  const btn=document.querySelector('#ed-exc-'+ei+' .note-tog');
+  if(btn) btn.classList.toggle('has-note',!!val.trim());
 }
 function toggleEditNote(ei,si){
   const s=EDIT_WO.exercises[ei].sets[si]; s.showNote=!s.showNote;
