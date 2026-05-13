@@ -1147,9 +1147,6 @@ function delSet(ei, si){
   if(tbody) tbody.innerHTML = ex.sets.map((s,si)=>renderSetRow(ei,si,s,ex.setConfig||null)).join('');
   else renderExerciseList();
 }
-  if(tbody) tbody.innerHTML = ACTIVE.exercises[ei].sets.map((s,si2)=>renderSetRow(ei,si2,s,ACTIVE.exercises[ei].setConfig||null)).join('');
-  else renderExerciseList();
-}
 
 function updateSet(ei, si, field, val){
   if(!ACTIVE||!ACTIVE.exercises[ei]) return;
@@ -1214,6 +1211,8 @@ function updateExNote(ei, val){
   const btn = document.querySelector(`#exc-${ei} .note-tog`);
   if(btn) btn.classList.toggle('has-note', !!val.trim());
 }
+
+function toggleWarmup(ei, si){
   const s = ACTIVE.exercises[ei].sets[si];
   s.warmup = !s.warmup;
   persist();
