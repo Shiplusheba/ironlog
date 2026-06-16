@@ -193,8 +193,7 @@ select option{background:var(--bg3)}
   </div>
 
   <div id="tabs">
-    <button class="tb on" onclick="nav('dash',this)">Dashboard</button>
-    <button class="tb" onclick="nav('templates',this)">Templates</button>
+    <button class="tb on" onclick="nav('templates',this)">Templates</button>
     <button class="tb" onclick="nav('library',this)">Library</button>
     <button class="tb" onclick="nav('recovery',this)">Recovery</button>
     <button class="tb" onclick="nav('progress',this)">Progress</button>
@@ -202,20 +201,6 @@ select option{background:var(--bg3)}
   </div>
 
   <main>
-
-    <!-- DASHBOARD -->
-    <div id="v-dash" class="view on">
-      <div class="sg">
-        <div class="sc"><div class="sv" id="d-week">0</div><div class="sl">This week</div></div>
-        <div class="sc"><div class="sv" id="d-total">0</div><div class="sl">All time</div></div>
-        <div class="sc"><div class="sv" id="d-streak">0</div><div class="sl">Day streak</div></div>
-      </div>
-      <div class="card"><div class="ct">Muscle recovery</div><div id="d-rec"></div></div>
-      <div class="ct" style="margin-top:16px">Recent workouts</div>
-      <div id="d-recent"></div>
-      <div id="d-empty" class="empty" style="display:none">No workouts yet<div class="empty-sub">Tap Templates to start your first session</div></div>
-      <div id="d-tips" style="margin-top:16px"></div>
-    </div>
 
     <!-- WORKOUT -->
     <div id="v-workout" class="view">
@@ -269,7 +254,7 @@ select option{background:var(--bg3)}
     </div>
 
     <!-- TEMPLATES -->
-    <div id="v-templates" class="view">
+    <div id="v-templates" class="view on">
       <div class="card" style="margin-bottom:14px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px">Blank workout</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Start from scratch — add exercises as you go.</div>
@@ -329,10 +314,19 @@ select option{background:var(--bg3)}
       </div>
       <div class="ct" style="margin-top:16px">Ready to train</div>
       <div id="rec-ready"></div>
+      <div class="div"></div>
+      <div class="ct">Recent workouts</div>
+      <div id="rec-recent"></div>
+      <div id="rec-tips" style="margin-top:16px"></div>
     </div>
 
     <!-- PROGRESS -->
     <div id="v-progress" class="view">
+      <div class="sg" style="margin-bottom:12px">
+        <div class="sc"><div class="sv" id="p-week">0</div><div class="sl">This week</div></div>
+        <div class="sc"><div class="sv" id="p-total">0</div><div class="sl">All time</div></div>
+        <div class="sc"><div class="sv" id="p-streak">0</div><div class="sl">Day streak</div></div>
+      </div>
       <div class="sg" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
         <div class="sc"><div class="sv" id="p-hrs">0h</div><div class="sl">Total time</div></div>
         <div class="sc"><div class="sv" id="p-vol">0</div><div class="sl">Total sets</div></div>
@@ -766,8 +760,8 @@ const SET_CONFIGS = {
   crosstrainer:{seg:'Segment', fields:[{key:'time',lbl:'min',ph:'20',step:'0.5'},{key:'distance',lbl:'km',ph:'—',step:'0.1'},{key:'level',lbl:'lvl',ph:'—',step:'1'}]},
 };
 
-const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Traps','Forearms'];
-const MUSCLE_REC = {Chest:72,Back:72,Shoulders:48,Biceps:48,Triceps:48,Quads:72,Hamstrings:72,Glutes:72,Calves:36,Core:24,Traps:48,Forearms:24};
+const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Traps','Forearms','Groin'];
+const MUSCLE_REC = {Chest:72,Back:72,Shoulders:48,Biceps:48,Triceps:48,Quads:72,Hamstrings:72,Glutes:72,Calves:36,Core:24,Traps:48,Forearms:24,Groin:48};
 const CATS = ['All','Chest','Back','Shoulders','Legs','Biceps','Triceps','Core','Cardio','HIIT','CrossFit','Rehab'];
 const SK = 'ironlog-v4';
 
@@ -818,11 +812,10 @@ function nav(view, btn){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
   if(btn) btn.classList.add('on');
   else {
-    const idx = ['dash','templates','library','recovery','progress','cloud'].indexOf(view);
+    const idx = ['templates','library','recovery','progress','cloud'].indexOf(view);
     if(idx>=0) document.querySelectorAll('.tb')[idx]?.classList.add('on');
   }
   document.getElementById('v-'+view).classList.add('on');
-  if(view==='dash') renderDash();
   if(view==='workout') renderWorkoutTab();
   if(view==='templates') renderTemplates();
   if(view==='library') renderLibrary();
@@ -1557,7 +1550,15 @@ function cancelTemplateEdit(){
 function renderRecovery(){
   const lt={};
   WS.forEach(w=>{ if(w.muscles) w.muscles.forEach(m=>{if(!lt[m]||w.date>lt[m])lt[m]=w.date;}); });
-  document.getElementById('rec-full').innerHTML = MUSCLES.map(m=>{
+  // Show all trained muscles, plus any standard ones, sorted by most-fatigued first
+  const trained = MUSCLES.filter(m=>lt[m]);
+  const untrained = MUSCLES.filter(m=>!lt[m]);
+  const ordered = [...trained.sort((a,b)=>{
+    const pa=Math.min(100,(hoursAgo(lt[a])/MUSCLE_REC[a])*100);
+    const pb=Math.min(100,(hoursAgo(lt[b])/MUSCLE_REC[b])*100);
+    return pa-pb; // most fatigued first
+  }), ...untrained];
+  document.getElementById('rec-full').innerHTML = ordered.map(m=>{
     const rec=MUSCLE_REC[m]; let pct=0,status='Not trained',col='#378ADD',info='No data';
     if(lt[m]){const h=Math.round(hoursAgo(lt[m]));pct=Math.min(100,Math.round((h/rec)*100));const hL=Math.max(0,rec-h);
       if(pct>=100){status='Fresh';col='#97C459';info='Ready';}
@@ -1573,12 +1574,30 @@ function renderRecovery(){
   document.getElementById('rec-ready').innerHTML = ready.length
     ? `<div class="card" style="font-size:13px;color:var(--text2);line-height:2">${ready.join('  ·  ')}</div>`
     : `<div class="card" style="font-size:13px;color:var(--text3)">All recently trained muscles still recovering. Rest or light cardio.</div>`;
+
+  // Recent workouts
+  const recent=WS.slice(0,4);
+  document.getElementById('rec-recent').innerHTML = recent.length ? recent.map(w=>{
+    const exNames=(w.exercises||[]).map(e=>e.name).slice(0,2).join(', ');
+    return`<div class="wrow"><div style="flex:1;min-width:0"><div class="wn">${w.name}</div>
+      <div class="wm">${fmtDate(w.date)}${exNames?' · '+exNames:''}</div></div>
+      <span class="${typeBadge(w.type)}">${typeLabel(w.type)}</span></div>`;
+  }).join('') : `<div style="font-size:13px;color:var(--text3);padding:4px 0">No workouts logged yet.</div>`;
+
+  // Quick tips (progressive overload advice)
+  const tips=getAdvice(3);
+  document.getElementById('rec-tips').innerHTML=tips.length?`<div class="ct">Training tips</div>`+tips.map(a=>
+    `<div class="adv-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="adv-tag ${a.tagClass}">${a.tag}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700">${a.ex}</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">${a.text}</div></div>`
+  ).join(''):'';
 }
 
 // ══════════════════════════════════════════
 // PROGRESS TAB
 // ══════════════════════════════════════════
 function renderProgress(){
+  document.getElementById('p-week').textContent = WS.filter(w=>w.date>=weekStart()).length;
+  document.getElementById('p-total').textContent = WS.length;
+  document.getElementById('p-streak').textContent = streak();
   const totalMin = WS.reduce((s,w)=>s+(w.duration||0),0);
   const totalSets = WS.reduce((s,w)=>s+(w.exercises||[]).reduce((a,e)=>a+(e.sets||[]).length,0),0);
   document.getElementById('p-hrs').textContent = Math.round(totalMin/60)+'h';
@@ -1684,7 +1703,7 @@ function getAdvice(limit=99){
   const hist={};
   WS.forEach(w=>(w.exercises||[]).forEach(e=>{
     const k=e.name.toLowerCase().trim();
-    if(!hist[k])hist[k]={name:e.name,entries:[]};
+    if(!hist[k])hist[k]={name:e.name,entries:[],setConfig:e.setConfig||null};
     hist[k].entries.push({date:w.date,sets:e.sets||[]});
   }));
   const advice=[];
@@ -1693,16 +1712,53 @@ function getAdvice(limit=99){
     h.entries.sort((a,b)=>a.date.localeCompare(b.date));
     const last=h.entries[h.entries.length-1];
     const prev=h.entries.length>1?h.entries[h.entries.length-2]:null;
-    const lastBest=last.sets.reduce((b,s)=>s.weight>b?s.weight:b,0);
-    const lastReps=last.sets.length?last.sets[last.sets.length-1].reps:0;
+    const cfg=h.setConfig;
     let text,tag,tagClass;
+
+    // Cardio exercises — distance/time based
+    if(cfg && ['rowing','treadmill','bike','crosstrainer'].includes(cfg)){
+      const workSets=last.sets.filter(s=>s.done!==false);
+      const fld = cfg==='rowing'||cfg==='treadmill' ? 'distance' : 'time';
+      const lbl = cfg==='rowing' ? 'm' : cfg==='treadmill' ? 'km' : 'min';
+      const val = workSets.length ? (workSets[workSets.length-1][fld]||'') : '';
+      text = val ? `Last session: ${val}${lbl}. Aim to beat it — add distance, time, or intensity.` : `Keep building your cardio base. Add a little distance or time each session.`;
+      tag='Cardio'; tagClass='tag-new';
+      advice.push({ex:h.name,text,tag,tagClass,date:last.date});
+      return;
+    }
+
+    // Bodyweight / duration
+    if(cfg==='bodyweight' || cfg==='duration'){
+      const repField = cfg==='duration' ? 'seconds' : 'reps';
+      const unit = cfg==='duration' ? 'sec' : 'reps';
+      const lastWork = last.sets.filter(s=>!s.warmup);
+      const lastVal = lastWork.length ? (lastWork[lastWork.length-1][repField]||0) : 0;
+      const lastWt = lastWork.reduce((b,s)=>(s.weight||0)>b?(s.weight||0):b,0);
+      if(prev){
+        const prevWork=prev.sets.filter(s=>!s.warmup);
+        const prevVal=prevWork.length?(prevWork[prevWork.length-1][repField]||0):0;
+        if(lastVal>prevVal){ text=`${unit==='sec'?'Hold':'Reps'} up ${prevVal}→${lastVal} ${unit}. Keep adding${lastWt?` or load beyond +${lastWt}kg`:' — once high, add weight'}.`; tag='Progress'; tagClass='tag-up'; }
+        else if(lastVal===prevVal){ text=`Holding ${lastVal} ${unit}. Add 1–2 ${unit} next time${lastWt?'':', or add a little weight'}.`; tag='On track'; tagClass='tag-hold'; }
+        else { text=`Dropped ${prevVal}→${lastVal} ${unit}. Could be fatigue — keep at it.`; tag='Check recovery'; tagClass='tag-hold'; }
+      } else {
+        text=`First recorded. Aim to add reps or time progressively${lastWt?'':', then add weight once it feels easy'}.`; tag='New'; tagClass='tag-new';
+      }
+      advice.push({ex:h.name,text,tag,tagClass,date:last.date});
+      return;
+    }
+
+    // Strength (weight + reps)
+    const lastBest=last.sets.reduce((b,s)=>(s.weight||0)>b?(s.weight||0):b,0);
+    const lastReps=last.sets.length?last.sets[last.sets.length-1].reps:0;
     if(prev&&lastBest>0){
-      const prevBest=prev.sets.reduce((b,s)=>s.weight>b?s.weight:b,0);
+      const prevBest=prev.sets.reduce((b,s)=>(s.weight||0)>b?(s.weight||0):b,0);
       const prevReps=prev.sets.length?prev.sets[prev.sets.length-1].reps:0;
       if(lastBest===prevBest&&lastReps===prevReps&&last.sets.length>=3){
         text=`Hitting ${last.sets.length}×${lastReps} @ ${lastBest}kg consistently. Try ${(lastBest+2.5).toFixed(1)}kg next session.`;tag='Increase weight';tagClass='tag-up';
       }else if(lastReps>prevReps&&lastBest===prevBest){
         text=`Rep progress ${prevReps}→${lastReps} @ ${lastBest}kg. Ready to try ${(lastBest+2.5).toFixed(1)}kg.`;tag='Progress';tagClass='tag-up';
+      }else if(lastBest>prevBest){
+        text=`Up ${prevBest}→${lastBest}kg. Strong work — hold here until all sets are clean, then climb again.`;tag='Progress';tagClass='tag-up';
       }else if(lastBest<prevBest){
         text=`Weight dropped ${prevBest}→${lastBest}kg. Prioritise sleep and nutrition before pushing further.`;tag='Check recovery';tagClass='tag-hold';
       }else{
@@ -1712,45 +1768,15 @@ function getAdvice(limit=99){
       const rc=isCompound(h.name)?'4–5 sets × 3–6 reps (heavy)':'3–4 sets × 10–15 reps (moderate)';
       text=`First session recorded. Target ${rc} for this type of movement.`;tag='New';tagClass='tag-new';
     }
-    advice.push({ex:h.name,text,tag,tagClass,date:last.entries?last.date:''});
+    advice.push({ex:h.name,text,tag,tagClass,date:last.date});
   });
-  return advice.sort((a,b)=>b.date?b.date.localeCompare(a.date||''):-1).slice(0,limit);
-}
-
-// ══════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════
-function renderDash(){
-  const ws=weekStart();
-  document.getElementById('d-week').textContent=WS.filter(w=>w.date>=ws).length;
-  document.getElementById('d-total').textContent=WS.length;
-  document.getElementById('d-streak').textContent=streak();
-  // Muscle mini
-  const lt={};WS.forEach(w=>{ if(w.muscles) w.muscles.forEach(m=>{if(!lt[m]||w.date>lt[m])lt[m]=w.date;}); });
-  const top=MUSCLES.filter(m=>lt[m]).slice(0,6);
-  document.getElementById('d-rec').innerHTML=top.length?top.map(m=>{
-    const h=hoursAgo(lt[m]),rec=MUSCLE_REC[m],pct=Math.min(100,Math.round((h/rec)*100));
-    const col=pct>=100?'#97C459':pct>=60?'#EF9F27':'#E24B4A',status=pct>=100?'Fresh':pct>=60?'Recovering':'Fatigued';
-    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-      <div style="width:72px;font-size:12px;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-weight:600">${m}</div>
-      <div class="b-track" style="flex:1"><div class="b-fill" style="width:${pct}%;background:${col}"></div></div>
-      <div style="font-size:11px;color:${col};width:60px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-weight:600">${status}</div>
-    </div>`;
-  }).join(''):'<div style="font-size:13px;color:var(--text3)">Log workouts with exercises to see muscle recovery.</div>';
-  // Recent
-  const rec=WS.slice(0,4);
-  document.getElementById('d-recent').innerHTML=rec.map(w=>{
-    const exNames=(w.exercises||[]).map(e=>e.name).slice(0,2).join(', ');
-    return`<div class="wrow"><div style="flex:1;min-width:0"><div class="wn">${w.name}</div>
-      <div class="wm">${fmtDate(w.date)}${exNames?' · '+exNames:''}</div></div>
-      <span class="${typeBadge(w.type)}">${typeLabel(w.type)}</span></div>`;
-  }).join('');
-  document.getElementById('d-empty').style.display=rec.length?'none':'block';
-  // Tips
-  const tips=getAdvice(2);
-  document.getElementById('d-tips').innerHTML=tips.length?`<div class="ct">Quick tips</div>`+tips.map(a=>
-    `<div class="adv-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="adv-tag ${a.tagClass}">${a.tag}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700">${a.ex}</span></div><div style="font-size:13px;color:var(--text2);line-height:1.6">${a.text}</div></div>`
-  ).join(''):'';
+  // Prioritise: stalled/ready-to-increase first, then most recent
+  const priority={'Increase weight':0,'Progress':1,'On track':2,'Check recovery':3,'Cardio':4,'New':5};
+  return advice.sort((a,b)=>{
+    const pa=priority[a.tag]??9, pb=priority[b.tag]??9;
+    if(pa!==pb) return pa-pb;
+    return (b.date||'').localeCompare(a.date||'');
+  }).slice(0,limit);
 }
 
 // ══════════════════════════════════════════
@@ -2085,7 +2111,8 @@ async function pullFromGitHub(){
     setSyncStatus('ok','Pulled from GitHub');
     document.getElementById('sync-last-time').textContent = 'Last synced: '+new Date(GH.lastSync).toLocaleString();
     toast('Data loaded from GitHub ✓');
-    renderDash();
+    if(document.getElementById('v-progress').classList.contains('on')) renderProgress();
+    if(document.getElementById('v-recovery').classList.contains('on')) renderRecovery();
   } catch(e){ setSyncStatus('error','Pull failed'); toast('Pull failed: '+e.message); }
 }
 
@@ -2116,7 +2143,7 @@ loadGHConfig();
 loadData();
 document.getElementById('hdate').textContent = new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-renderDash();
+renderTemplates();
 </script>
 </body>
 </html>
