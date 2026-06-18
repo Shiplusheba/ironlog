@@ -290,19 +290,20 @@ select option{background:var(--bg3)}
       <div class="lib-cats" id="lib-cats"></div>
       <div id="lib-list"></div>
       <div class="div"></div>
-      <div class="ct">Add custom exercise</div>
+      <div class="ct" id="cx-form-title">Add custom exercise</div>
       <div class="row2">
         <div class="fl"><label>Name</label><input id="cx-name" type="text" placeholder="Exercise name"></div>
         <div class="fl"><label>Category</label>
           <select id="cx-cat">
             <option>Chest</option><option>Back</option><option>Shoulders</option><option>Legs</option>
             <option>Biceps</option><option>Triceps</option><option>Core</option>
-            <option>Cardio</option><option>HIIT</option><option>CrossFit</option>
+            <option>Cardio</option><option>HIIT</option><option>CrossFit</option><option>Rehab</option>
           </select>
         </div>
       </div>
       <div class="fl"><label>Muscles (optional)</label><input id="cx-muscles" type="text" placeholder="e.g. Chest, Triceps"></div>
-      <button class="btn btn-out" onclick="addCustomExercise()">Add to library</button>
+      <button class="btn btn-out" id="cx-save-btn" onclick="addCustomExercise()">Add to library</button>
+      <button class="btn btn-out btn-sm" id="cx-cancel-btn" style="display:none;margin-top:6px" onclick="cancelEditCustomExercise()">Cancel edit</button>
     </div>
 
     <!-- RECOVERY -->
@@ -655,6 +656,7 @@ const LIBRARY = [
   {id:'exercise-bike',name:'Exercise Bike',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Rentukka main gym',setConfig:'bike'},
   {id:'rowing',name:'Rowing Machine',cat:'Cardio',type:'cardio',muscles:['Back','Quads','Core'],note:'Rentukka main gym',setConfig:'rowing'},
   {id:'outdoor-run',name:'Outdoor Run',cat:'Cardio',type:'cardio',muscles:['Quads','Calves'],note:'Laajavuori trails nearby',setConfig:'treadmill'},
+  {id:'outdoor-walk',name:'Outdoor Walking',cat:'Cardio',type:'cardio',muscles:['Quads','Calves','Glutes'],note:'Kortepohja paths, Laajavuori trails',setConfig:'walking'},
 
   // ── HIIT (bodyweight area in gym + cardio machines)
   {id:'burpee',name:'Burpees',cat:'HIIT',type:'hiit',muscles:['Core','Chest','Quads'],note:'Bodyweight area',setConfig:'bodyweight'},
@@ -707,6 +709,9 @@ const BUILT_IN_TEMPLATES = [
   {id:'my-push-b',name:'4. Push B',type:'strength',desc:'Incline · Military · Cable fly · Triceps · Core',exIds:['incline-db-press','military-press','single-arm-cable-fly','overhead-tricep-cable','cable-lateral','wood-chop','neck-curl']},
   {id:'my-pull-b',name:'5. Pull B',type:'strength',desc:'Pulldowns · Row · Biceps · Back ext · Core',exIds:['lat-pulldown','seated-row','db-curl','scott-curl','shrug','seated-back-ext','hyperextension','decline-crunch']},
   {id:'my-leg-b',name:'6. Leg B',type:'strength',desc:'Abduction · Adduction · Squat · SLD · KB · Core',exIds:['hip-abduction','hip-adduction','squat','straight-leg-dl','split-squat','seated-calf-raise','kb-swing','russian-twist']},
+  // ── BEGINNER MACHINE — Upper/Lower (gentle, machine-based)
+  {id:'her-upper',name:'Upper (Her)',type:'strength',desc:'Machines · 8-10-12 reps · light start',exIds:['lat-pulldown','seated-row','pec-fly-machine','db-bench','lateral-raise','rear-delt-machine','ab-machine']},
+  {id:'her-lower',name:'Lower (Her)',type:'strength',desc:'Machines · 8-10-12 reps · light start',exIds:['leg-press','leg-extension','leg-curl','hip-abduction','hip-adduction','seated-calf-raise','back-ext-machine']},
   // ── STRENGTH — main gym
   {id:'push',name:'Push Day',type:'strength',desc:'Chest · Shoulders · Triceps',exIds:['bench','incline-db-press','db-ohp','lateral-raise','tricep-pushdown','weighted-dip']},
   {id:'pull',name:'Pull Day',type:'strength',desc:'Back · Biceps',exIds:['pullup','tbar-row','seated-row','lat-pulldown','scott-curl','cable-curl','face-pull']},
@@ -733,6 +738,7 @@ const BUILT_IN_TEMPLATES = [
   {id:'cardio-mix',name:'Cardio Mix',type:'cardio',desc:'Treadmill + Rowing machine',exIds:['treadmill','rowing']},
   {id:'cardio-endurance',name:'Endurance',type:'cardio',desc:'Cross-trainer + Exercise bike',exIds:['cross-trainer','exercise-bike']},
   {id:'cardio-row',name:'Row Focus',type:'cardio',desc:'Rowing machine — distance or time',exIds:['rowing']},
+  {id:'cardio-walk',name:'Outdoor Walk',type:'cardio',desc:'Walking — track km and time',exIds:['outdoor-walk']},
   // ── HIIT — gym equipment
   {id:'hiit-gym',name:'Gym HIIT',type:'hiit',desc:'Rowing · Bike · Bodyweight',exIds:['rowing-hiit','bike-hiit','burpee','jump-squat','mountain-climber']},
   {id:'hiit-bw',name:'Bodyweight HIIT',type:'hiit',desc:'No equipment · Pull-up bar + floor',exIds:['pullup-hiit','dip-hiit','burpee','jump-squat','mountain-climber']},
@@ -758,6 +764,7 @@ const SET_CONFIGS = {
   treadmill:   {seg:'Segment', fields:[{key:'distance',lbl:'km',ph:'5.0',step:'0.1'},{key:'time',lbl:'min',ph:'30',step:'0.5'},{key:'speed',lbl:'km/h',ph:'—',step:'0.1'}]},
   bike:        {seg:'Segment', fields:[{key:'time',lbl:'min',ph:'20',step:'0.5'},{key:'level',lbl:'lvl',ph:'—',step:'1'},{key:'calories',lbl:'cal',ph:'—',step:'1'}]},
   crosstrainer:{seg:'Segment', fields:[{key:'time',lbl:'min',ph:'20',step:'0.5'},{key:'distance',lbl:'km',ph:'—',step:'0.1'},{key:'level',lbl:'lvl',ph:'—',step:'1'}]},
+  walking:     {seg:'Segment', fields:[{key:'distance',lbl:'km',ph:'3.0',step:'0.1'},{key:'time',lbl:'min',ph:'30',step:'0.5'},{key:'steps',lbl:'steps',ph:'—',step:'100'}]},
 };
 
 const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Traps','Forearms','Groin'];
@@ -1363,13 +1370,17 @@ function renderLibrary(){
     ? `<div class="lib-list">${filtered.map(e=>`
       <div class="lib-item" onclick="toggleLibItem('${e.id}')" id="li-${e.id}" style="flex-direction:column;align-items:stretch;cursor:pointer">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <div><div class="lib-item-n">${e.name}</div><div class="lib-item-m">${(e.muscles||[]).join(', ')}</div></div>
+          <div><div class="lib-item-n">${e.name}${e.custom?' <span style="font-size:10px;color:var(--text3);font-weight:400">(custom)</span>':''}</div><div class="lib-item-m">${(e.muscles||[]).join(', ')}</div></div>
           <span class="bdg ${typeBadge(e.type||'strength')}">${e.cat}</span>
         </div>
         <div id="li-detail-${e.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
           ${e.note?`<div style="font-size:12px;color:var(--amber);margin-bottom:8px">📍 ${e.note}</div>`:''}
           <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Muscles: ${(e.muscles||[]).join(', ')||'—'}</div>
-          <button class="btn btn-sm" style="width:100%" onclick="event.stopPropagation();addExFromLib('${e.id}')">+ Add to current workout</button>
+          <button class="btn btn-sm" style="width:100%;margin-bottom:${e.custom?'8px':'0'}" onclick="event.stopPropagation();addExFromLib('${e.id}')">+ Add to current workout</button>
+          ${e.custom?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="btn btn-out btn-sm" style="width:100%;font-size:12px" onclick="event.stopPropagation();editCustomExercise('${e.id}')">✏ Edit</button>
+            <button class="btn btn-out btn-sm" style="width:100%;font-size:12px;color:#F09595;border-color:rgba(226,75,74,.3)" onclick="event.stopPropagation();delCustomExercise('${e.id}')">Delete</button>
+          </div>`:''}
         </div>
       </div>`).join('')}</div>`
     : `<div class="empty" style="padding:20px">No exercises found</div>`;
@@ -1388,11 +1399,28 @@ function addExFromLib(libId){
   addExerciseToWorkout(libId);
   toast(getEx(libId)?.name+' added to workout');
 }
+let EDITING_CX = null;  // id of custom exercise being edited
+
 function addCustomExercise(){
   const name = document.getElementById('cx-name').value.trim();
   const cat = document.getElementById('cx-cat').value;
   const muscles = document.getElementById('cx-muscles').value.split(',').map(s=>s.trim()).filter(Boolean);
   if(!name){ toast('Please enter a name'); return; }
+  if(EDITING_CX){
+    // Update existing
+    const ex = CUSTOM_EX.find(e=>e.id===EDITING_CX);
+    if(ex){ ex.name=name; ex.cat=cat; ex.muscles=muscles; }
+    EDITING_CX=null;
+    document.getElementById('cx-form-title').textContent='Add custom exercise';
+    document.getElementById('cx-save-btn').textContent='Add to library';
+    document.getElementById('cx-cancel-btn').style.display='none';
+    persist();
+    document.getElementById('cx-name').value='';
+    document.getElementById('cx-muscles').value='';
+    renderLibrary();
+    toast(name+' updated');
+    return;
+  }
   const id = 'cx-'+Date.now();
   CUSTOM_EX.push({id, name, cat, type:'strength', muscles, custom:true});
   persist();
@@ -1400,6 +1428,39 @@ function addCustomExercise(){
   document.getElementById('cx-muscles').value='';
   renderLibrary();
   toast(name+' added to library');
+}
+
+function editCustomExercise(id){
+  const ex = CUSTOM_EX.find(e=>e.id===id);
+  if(!ex) return;
+  EDITING_CX = id;
+  document.getElementById('cx-name').value = ex.name;
+  document.getElementById('cx-cat').value = ex.cat;
+  document.getElementById('cx-muscles').value = (ex.muscles||[]).join(', ');
+  document.getElementById('cx-form-title').textContent = 'Edit: '+ex.name;
+  document.getElementById('cx-save-btn').textContent = 'Save changes';
+  document.getElementById('cx-cancel-btn').style.display = 'block';
+  // Scroll the form into view
+  document.getElementById('cx-form-title').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function cancelEditCustomExercise(){
+  EDITING_CX=null;
+  document.getElementById('cx-name').value='';
+  document.getElementById('cx-muscles').value='';
+  document.getElementById('cx-form-title').textContent='Add custom exercise';
+  document.getElementById('cx-save-btn').textContent='Add to library';
+  document.getElementById('cx-cancel-btn').style.display='none';
+}
+
+function delCustomExercise(id){
+  const ex = CUSTOM_EX.find(e=>e.id===id);
+  if(!ex) return;
+  if(!confirm('Delete "'+ex.name+'" from your library? Past workouts that used it are not affected.')) return;
+  CUSTOM_EX = CUSTOM_EX.filter(e=>e.id!==id);
+  persist();
+  renderLibrary();
+  toast(ex.name+' deleted');
 }
 
 // ══════════════════════════════════════════
@@ -1716,10 +1777,10 @@ function getAdvice(limit=99){
     let text,tag,tagClass;
 
     // Cardio exercises — distance/time based
-    if(cfg && ['rowing','treadmill','bike','crosstrainer'].includes(cfg)){
+    if(cfg && ['rowing','treadmill','bike','crosstrainer','walking'].includes(cfg)){
       const workSets=last.sets.filter(s=>s.done!==false);
-      const fld = cfg==='rowing'||cfg==='treadmill' ? 'distance' : 'time';
-      const lbl = cfg==='rowing' ? 'm' : cfg==='treadmill' ? 'km' : 'min';
+      const fld = cfg==='rowing'||cfg==='treadmill'||cfg==='walking' ? 'distance' : 'time';
+      const lbl = cfg==='rowing' ? 'm' : (cfg==='treadmill'||cfg==='walking') ? 'km' : 'min';
       const val = workSets.length ? (workSets[workSets.length-1][fld]||'') : '';
       text = val ? `Last session: ${val}${lbl}. Aim to beat it — add distance, time, or intensity.` : `Keep building your cardio base. Add a little distance or time each session.`;
       tag='Cardio'; tagClass='tag-new';
